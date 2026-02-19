@@ -1,0 +1,162 @@
+// ─── Synapse Database Schema ───
+// PostgreSQL via Prisma ORM
+// All sensitive tokens encrypted at application layer (AES-256-GCM)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───
+
+enum IntegrationProvider {
+  GMAIL
+  DISCORD
+  TELEGRAM
+  SLACK
+  WEBHOOK
+}
+
+enum WorkflowRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum StepExecutionStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+// ─── Models ───
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  hashedPassword String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  integrations    Integration[]
+  workflows       Workflow[]
+  workflowRuns    WorkflowRun[]
+  webhookEndpoints WebhookEndpoint[]
+
+  @@map("users")
+}
+
+model Integration {
+  id                   String              @id @default(cuid())
+  userId               String
+  provider             IntegrationProvider
+  label                String              // e.g. "My Work Gmail"
+  encryptedCredentials String              // AES-256-GCM ciphertext (base64)
+  iv                   String              // Initialization vector (base64)
+  authTag              String              // GCM authentication tag (base64)
+  metadata             Json?               // Non-sensitive display data { email: "berke@...", botName: "..." }
+  isActive             Boolean             @default(true)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider, label])
+  @@map("integrations")
+}
+
+model Workflow {
+  id                    String   @id @default(cuid())
+  userId                String
+  name                  String
+  description           String?
+  naturalLanguagePrompt String?  // Original user input
+  nodes                 Json     @default("[]") // React Flow nodes
+  edges                 Json     @default("[]") // React Flow edges
+  dagDefinition         Json?    // AI-parsed pipeline definition
+  isActive              Boolean  @default(false)
+  isTemplate            Boolean  @default(false)
+  templateCategory      String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  runs             WorkflowRun[]
+  webhookEndpoints WebhookEndpoint[]
+
+  @@map("workflows")
+}
+
+model WorkflowRun {
+  id             String            @id @default(cuid())
+  workflowId     String
+  userId         String
+  status         WorkflowRunStatus @default(PENDING)
+  triggerPayload Json?
+  startedAt      DateTime          @default(now())
+  completedAt    DateTime?
+  error          String?
+
+  workflow Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps    StepExecution[]
+
+  @@map("workflow_runs")
+}
+
+model StepExecution {
+  id          String              @id @default(cuid())
+  runId       String
+  nodeId      String              // Corresponds to DAG node ID
+  nodeName    String
+  nodeType    String
+  status      StepExecutionStatus @default(PENDING)
+  input       Json?
+  output      Json?
+  error       String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  durationMs  Int?
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@map("step_executions")
+}
+
+model WebhookEndpoint {
+  id           String    @id @default(uuid()) // UUID serves as public URL path
+  workflowId   String
+  userId       String
+  isActive     Boolean   @default(true)
+  lastCalledAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs     WebhookLog[]
+
+  @@map("webhook_endpoints")
+}
+
+model WebhookLog {
+  id         String   @id @default(cuid())
+  endpointId String
+  method     String
+  headers    Json
+  body       Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_logs")
+}
