@@ -5,6 +5,568 @@
 <h1 align="center">⚡ Synapse</h1>
 
 <p align="center">
+  <b>Self-Hosted, AI-Powered Workflow Automation Builder</b><br/>
+  <i>Describe your automation in plain language — Synapse builds, visualizes, and executes it.</i>
+</p>
+
+<p align="center">
+  <a href="https://github.com/bcsakalar/synapse/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License" /></a>
+  <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js 16" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?style=flat-square&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Gemini_AI-2.5_Flash-4285F4?style=flat-square&logo=google" alt="Gemini AI" />
+  <img src="https://img.shields.io/badge/PostgreSQL-17-336791?style=flat-square&logo=postgresql" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis" alt="Redis" />
+  <img src="https://img.shields.io/badge/BullMQ-5-EE3A43?style=flat-square" alt="BullMQ" />
+  <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker" alt="Docker" />
+</p>
+
+---
+
+## Table of Contents
+
+- [What is Synapse?](#what-is-synapse)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Node Types](#node-types)
+- [API Reference](#api-reference)
+- [Security Architecture](#security-architecture)
+- [Getting Started](#getting-started)
+- [Production Deployment](#production-deployment-docker)
+- [Available Scripts](#available-scripts)
+- [Project Structure](#project-structure--key-files)
+- [Variable Interpolation](#variable-interpolation)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## What is Synapse?
+
+**Synapse** is a fully **self-hosted**, **AI-powered workflow automation builder** — a free, open-source alternative to Make.com and Zapier.
+
+Users describe automations in **plain natural language** (English or Turkish). **Google Gemini 2.5 Flash** parses the description into a structured **DAG (Directed Acyclic Graph)**, **React Flow** renders a visual drag-and-drop editor, and **BullMQ** executes each step through a Redis-backed distributed job queue.
+
+### Why Synapse?
+
+| Problem | Synapse Solution |
+|---------|-----------------|
+| Make.com / Zapier is expensive | Self-hosted, completely free |
+| Your data sits on 3rd-party servers | Runs on your own infrastructure |
+| Complex drag-and-drop UIs | Create workflows with natural language |
+| Limited or paid integrations | Open source — add any integration you need |
+| Vendor lock-in | Dockerized, portable anywhere |
+
+---
+
+## Features
+
+### 🧠 AI-Powered Workflow Creation
+
+- **Natural language input** — Write sentences like *"Forward Gmail messages to Telegram and notify Discord"*
+- **Gemini 2.5 Flash** — Structured JSON output via Google's latest AI model
+- **Smart refinement** — Iteratively refine generated workflows with follow-up prompts
+- **Automatic DAG generation** — AI determines nodes, edges, and configuration automatically
+
+### 🎨 Visual Workflow Editor
+
+- **React Flow** drag-and-drop canvas with animated edges
+- **12 node types** across 4 categories (Trigger, Action, AI, Logic)
+- **Real-time node status** — Running, success, and error states shown with color-coded glow effects
+- **Conditional branching** — If/Else logic with true/false output handles
+- **Side-panel node configuration** — Configure each node without leaving the canvas
+
+### 🔌 5 Built-in Integrations
+
+| Integration | Capability | Authentication |
+|-------------|-----------|---------------|
+| **Gmail** | Send emails | OAuth 2.0 |
+| **Telegram** | Send messages | Bot Token + Chat ID |
+| **Discord** | Post to channels | Webhook URL |
+| **Slack** | Post to channels | Webhook URL |
+| **HTTP / Webhook** | Call any endpoint | Custom headers / UUID-based |
+
+### ⚡ Distributed Execution Engine
+
+- **BullMQ** with Redis-backed job queues (`synapse-triggers`, `synapse-steps`)
+- **Step-by-step execution** — Each node runs independently with its own `StepExecution` record
+- **Automatic retry** — Exponential backoff (3 attempts, 2 s base delay)
+- **Rate limiting** — 50 step jobs per 60 seconds, 10 concurrent step workers
+- **Conditional branching** — True/false branches; skipped branches marked `SKIPPED`
+- **Variable interpolation** — `{{step.NODE_ID.output.FIELD}}` references across steps
+- **Gemini AI nodes** — Summarize text or transform data inline
+
+### 🔒 Security
+
+- **AES-256-GCM** encryption for all stored credentials (API keys, tokens, OAuth refresh tokens)
+- **JWT (HS256)** authentication with HttpOnly, Secure, SameSite cookies (7-day expiry)
+- **bcrypt** password hashing (12 rounds)
+- **Middleware-protected routes** — `/dashboard/*` and `/api/workflows/*`, `/api/integrations/*`
+- **Credentials never decrypted in the web app** — decryption happens only in the isolated worker process
+
+### 📊 Monitoring & Debugging
+
+- **Execution Timeline** — Step-by-step timeline with input/output, duration, and error details
+- **Webhook Debugger** — Inspect incoming webhook requests (method, headers, body, IP) in real time
+- **Run History** — Paginated list of all workflow executions with status and step counts
+- **Real-time status updates** — Redis pub/sub events for live step status tracking
+
+### 🎯 Additional Features
+
+- **Workflow Templates** — Pre-built templates (Email-to-Telegram, API Monitor, etc.)
+- **Internationalization (i18n)** — Full English and Turkish language support across the UI
+- **Dark theme** — Modern dark UI built with Tailwind CSS and Radix UI
+- **Webhook endpoints** — UUID-based public URLs that trigger workflows on incoming HTTP requests
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| **Frontend** | Next.js (App Router) | 16 |
+| **UI** | React + Tailwind CSS + Radix UI | 19 / 4 |
+| **Visual Editor** | @xyflow/react (React Flow) | Latest |
+| **AI Engine** | Google Gemini 2.5 Flash | `@google/genai` |
+| **Database** | PostgreSQL | 17 |
+| **ORM** | Prisma | 6 |
+| **Cache / Queue** | Redis + BullMQ | 7 / 5 |
+| **Auth** | JWT (`jose`) + `bcryptjs` | HS256 |
+| **Encryption** | Node.js `crypto` | AES-256-GCM |
+| **Language** | TypeScript | 5.7 |
+| **Monorepo** | Turborepo + npm workspaces | 2.4 |
+| **Containerization** | Docker (multi-stage) | Alpine |
+
+---
+
+## Architecture
+
+### Monorepo Structure
+
+```
+synapse/
+├── apps/
+│   ├── web/                        # Next.js 16 — Frontend + REST API
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── (auth)/         # Login & Register pages
+│   │   │   │   ├── api/            # ~20 REST API route handlers
+│   │   │   │   │   ├── auth/       #   register, login, logout, me
+│   │   │   │   │   ├── integrations/ # CRUD + Google OAuth2 flow
+│   │   │   │   │   ├── workflows/  #   CRUD, parse, refine, trigger, runs
+│   │   │   │   │   └── webhooks/   #   Public endpoint handler + logs
+│   │   │   │   └── dashboard/      # Protected dashboard pages
+│   │   │   ├── components/
+│   │   │   │   ├── flow/           # React Flow canvas, custom nodes, config panel
+│   │   │   │   ├── dashboard/      # Sidebar navigation
+│   │   │   │   └── ui/            # 15+ Shadcn/Radix UI components
+│   │   │   ├── hooks/              # useExecutionStatus (polling)
+│   │   │   ├── i18n/               # English & Turkish translations
+│   │   │   ├── contexts/           # Language context provider
+│   │   │   └── lib/
+│   │   │       ├── auth.ts         # JWT & password utilities
+│   │   │       ├── utils.ts        # cn() Tailwind merge
+│   │   │       └── ai/
+│   │   │           └── workflow-parser.ts  # Gemini AI integration
+│   │   └── middleware.ts           # JWT route protection
+│   │
+│   └── worker/                     # BullMQ background job processor
+│       └── src/
+│           ├── index.ts            # Trigger worker + Step worker
+│           ├── queues.ts           # Queue definitions & job types
+│           └── executors.ts        # 10 node executors
+│
+├── packages/
+│   └── shared/                     # Shared library (used by web + worker)
+│       ├── prisma/
+│       │   └── schema.prisma       # 7 models, 3 enums
+│       └── src/
+│           ├── crypto.ts           # AES-256-GCM encrypt/decrypt
+│           ├── db.ts               # Prisma singleton client
+│           ├── redis.ts            # ioredis connection factory
+│           ├── constants.ts        # Node type registry (12 types)
+│           ├── variables.ts        # {{step.X.output.Y}} interpolation engine
+│           ├── schemas/            # Zod validation schemas
+│           └── types/              # Shared TypeScript interfaces
+│
+└── docker/
+    ├── docker-compose.yml          # PostgreSQL 17 + Redis 7 + Web + Worker
+    ├── Dockerfile.web              # Multi-stage Next.js standalone build
+    └── Dockerfile.worker           # Multi-stage Node.js worker build
+```
+
+### Database Schema
+
+7 models with 3 enums (`IntegrationProvider`, `WorkflowRunStatus`, `StepExecutionStatus`):
+
+```
+┌──────────────┐    ┌───────────────────┐    ┌──────────────────┐
+│    User      │───<│   Integration     │    │    Workflow       │
+│              │    │                   │    │                  │
+│ id (cuid)    │    │ id (cuid)         │    │ id (cuid)        │
+│ email        │    │ userId       (FK) │    │ userId      (FK) │
+│ name         │    │ provider (enum)   │    │ name             │
+│ hashedPassword│   │ encryptedCreds    │    │ description      │
+│ createdAt    │    │ iv                │    │ nlPrompt         │
+│ updatedAt    │    │ authTag           │    │ nodes (JSON)     │
+└──────┬───────┘    │ label             │    │ edges (JSON)     │
+       │            │ metadata (JSON)   │    │ dagDefinition    │
+       │            │ isActive          │    │ isActive         │
+       │            └───────────────────┘    │ isTemplate       │
+       │                                     └────────┬─────────┘
+       │                                              │
+       │            ┌───────────────────┐             │
+       ├───────────>│  WorkflowRun      │<────────────┘
+       │            │                   │
+       │            │ id (cuid)         │    ┌──────────────────┐
+       │            │ workflowId   (FK) │───>│ StepExecution    │
+       │            │ userId       (FK) │    │                  │
+       │            │ status (enum)     │    │ id (cuid)        │
+       │            │ triggerPayload    │    │ runId       (FK) │
+       │            │ startedAt         │    │ nodeId           │
+       │            │ completedAt       │    │ nodeName         │
+       │            │ error             │    │ nodeType         │
+       │            └───────────────────┘    │ status (enum)    │
+       │                                     │ input (JSON)     │
+       │            ┌───────────────────┐    │ output (JSON)    │
+       └───────────>│ WebhookEndpoint   │    │ error            │
+                    │                   │    │ durationMs       │
+                    │ id (uuid)         │    └──────────────────┘
+                    │ workflowId   (FK) │
+                    │ userId       (FK) │    ┌──────────────────┐
+                    │ isActive          │───>│  WebhookLog      │
+                    │ lastCalledAt      │    │                  │
+                    └───────────────────┘    │ id (cuid)        │
+                                             │ endpointId  (FK) │
+                                             │ method           │
+                                             │ headers (JSON)   │
+                                             │ body (JSON)      │
+                                             │ ip               │
+                                             └──────────────────┘
+```
+
+### Execution Flow
+
+```
+1. User clicks "Run" or a Webhook is received
+                    │
+2. API creates WorkflowRun (status: PENDING)
+                    │
+3. Trigger job enqueued to "synapse-triggers" (BullMQ)
+                    │
+4. Trigger Worker picks up the job:
+   ├── Mark run → RUNNING
+   ├── Parse DAG, find trigger nodes (0 incoming edges)
+   ├── Create StepExecution records for ALL nodes
+   ├── Mark trigger nodes → SUCCESS (output = triggerData)
+   └── Enqueue downstream nodes to "synapse-steps"
+                    │
+5. Step Worker processes each node:
+   ├── Mark step → RUNNING
+   ├── Resolve {{step.X.output.Y}} variable references
+   ├── Call EXECUTOR_REGISTRY[nodeType](config, input, context)
+   ├── On success → store output, enqueue next nodes
+   ├── On condition → route to true/false branch, SKIP the other
+   └── On failure → mark step FAILED, mark run FAILED
+                    │
+6. Completion check after each step:
+   ├── All done, no failures → COMPLETED
+   ├── All done, some failures → PARTIAL
+   └── Critical failure → FAILED
+```
+
+---
+
+## Node Types
+
+12 node types organized into 4 categories:
+
+### Triggers
+
+| Type | Description | Config |
+|------|-------------|--------|
+| `trigger_webhook` | Start workflow on incoming HTTP request | `method` (GET/POST/PUT) |
+| `trigger_cron` | Start workflow on a schedule | `cronExpression` |
+
+### Actions
+
+| Type | Description | Config |
+|------|-------------|--------|
+| `action_gmail_send` | Send email via Gmail API | `to`, `subject`, `body`, `integrationId` |
+| `action_telegram_msg` | Send message via Telegram Bot | `message`, `integrationId` |
+| `action_discord_msg` | Post to Discord channel | `content`, `username`, `integrationId` |
+| `action_slack_msg` | Post to Slack channel | `text`, `integrationId` |
+| `action_http_request` | Make any HTTP request | `url`, `method`, `headers`, `body` |
+
+### AI
+
+| Type | Description | Config |
+|------|-------------|--------|
+| `action_gemini_summarize` | Summarize text with Gemini | `prompt`, `maxTokens` |
+| `action_gemini_transform` | Transform data with Gemini | `instruction`, `outputFormat` (text/json/markdown) |
+
+### Logic
+
+| Type | Description | Config |
+|------|-------------|--------|
+| `logic_condition` | If/Else branching (two output handles) | `variable`, `operator`, `value` |
+| `logic_delay` | Pause execution | `delayMs` |
+| `logic_transform` | Map and reshape data | `mappings` |
+
+**Condition operators:** `equals`, `not_equals`, `greater_than`, `less_than`, `contains`, `exists`
+
+---
+
+## API Reference
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/register` | Register a new user |
+| `POST` | `/api/auth/login` | Log in (sets JWT cookie) |
+| `POST` | `/api/auth/logout` | Log out (clears cookie) |
+| `GET` | `/api/auth/me` | Get current user info |
+
+### Workflows
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/workflows` | List all workflows |
+| `POST` | `/api/workflows` | Create a workflow |
+| `GET` | `/api/workflows/[id]` | Get workflow details |
+| `PUT` | `/api/workflows/[id]` | Update a workflow |
+| `DELETE` | `/api/workflows/[id]` | Delete a workflow |
+| `POST` | `/api/workflows/parse` | AI: Natural language → DAG |
+| `POST` | `/api/workflows/refine` | AI: Refine existing DAG |
+| `POST` | `/api/workflows/[id]/trigger` | Manually trigger a workflow |
+| `GET` | `/api/workflows/[id]/runs` | List runs (paginated) |
+| `GET` | `/api/workflows/[id]/runs/[runId]` | Get run with step details |
+
+### Integrations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/integrations` | List integrations (credentials hidden) |
+| `POST` | `/api/integrations` | Add new integration (validates & encrypts) |
+| `PUT` | `/api/integrations/[id]` | Update integration |
+| `DELETE` | `/api/integrations/[id]` | Remove integration |
+| `GET` | `/api/integrations/google/authorize` | Initiate Gmail OAuth2 flow |
+| `GET` | `/api/integrations/google/callback` | Handle OAuth2 callback |
+
+### Webhooks (Public — no auth required)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST/GET/PUT` | `/api/webhooks/[endpointId]` | Receive webhook, trigger workflow |
+| `GET` | `/api/webhooks/logs` | List recent webhook logs |
+
+---
+
+## Security Architecture
+
+```
+User Registration / Login
+       │
+       ▼
+  [bcrypt 12-round]  →  hashedPassword  →  PostgreSQL
+       │
+       ▼
+  [JWT HS256 Sign]   →  HttpOnly Secure Cookie  →  Browser
+       │
+       ▼
+  [Middleware]        →  Route Protection  →  /dashboard/*, /api/workflows/*, /api/integrations/*
+
+Credential Storage
+       │
+       ▼
+  [AES-256-GCM]      →  ciphertext + iv + authTag  →  PostgreSQL
+       │                          │
+       ▼                          ▼
+  Worker only         →  [Decrypt in-memory]  →  API Call  →  Wipe from memory
+```
+
+- Webhook endpoints use UUID-based security (unguessable endpoint IDs)
+- Telegram bot tokens are validated against the Telegram API before storage
+- OAuth2 refresh tokens are encrypted at rest and refreshed automatically
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+| Software | Version |
+|----------|---------|
+| **Node.js** | 22+ (LTS) |
+| **npm** | 10+ |
+| **Docker & Docker Compose** | 24+ / v2 |
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/bcsakalar/synapse.git
+cd synapse
+npm install
+```
+
+### 2. Configure Environment
+
+Create a `.env` file in the project root:
+
+```bash
+# Database
+DATABASE_URL=postgresql://synapse:synapse@localhost:5488/synapse
+
+# Redis
+REDIS_URL=redis://localhost:6399
+
+# AI — Get your key at https://aistudio.google.com/apikey
+GEMINI_API_KEY=your_gemini_api_key
+
+# Auth (generate with: openssl rand -hex 32)
+JWT_SECRET=your_64_char_hex_string
+
+# Encryption (generate with: openssl rand -hex 32)
+ENCRYPTION_KEY=your_64_char_hex_string
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3099
+NODE_ENV=development
+```
+
+### 3. Start Infrastructure
+
+```bash
+# Start PostgreSQL and Redis via Docker
+docker compose -f docker/docker-compose.yml up -d postgres redis
+```
+
+### 4. Set Up Database
+
+```bash
+# Generate Prisma client
+npx prisma generate --schema=packages/shared/prisma/schema.prisma
+
+# Push schema to database
+npx prisma db push --schema=packages/shared/prisma/schema.prisma
+```
+
+### 5. Run Development Servers
+
+```bash
+# Start both web and worker with Turborepo
+npm run dev
+```
+
+Open **http://localhost:3000** in your browser (or `http://localhost:3099` in Docker mode).
+
+---
+
+## Production Deployment (Docker)
+
+Build and run all services (PostgreSQL, Redis, Web, Worker) with a single command:
+
+```bash
+npm run docker:build
+```
+
+This starts:
+
+- **PostgreSQL 17** on port `5488`
+- **Redis 7** on port `6399`
+- **Web app** on port `3099`
+- **Worker** (internal, no exposed port)
+
+Access the application at **http://localhost:3099**.
+
+For a full VPS deployment guide (Nginx, SSL, PM2), see [SERVER.md](SERVER.md).
+
+---
+
+## Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start all apps in development mode (Turborepo) |
+| `npm run build` | Build all apps for production |
+| `npm run lint` | Lint all apps |
+| `npm run db:generate` | Generate Prisma client |
+| `npm run db:push` | Push Prisma schema to database |
+| `npm run db:seed` | Seed database with sample data |
+| `npm run docker:up` | Start Docker services |
+| `npm run docker:down` | Stop Docker services |
+| `npm run docker:build` | Build and start Docker services |
+
+---
+
+## Project Structure — Key Files
+
+| File | Purpose |
+|------|---------|
+| `apps/web/src/middleware.ts` | JWT verification, route protection |
+| `apps/web/src/lib/ai/workflow-parser.ts` | Gemini AI integration (parse + refine) |
+| `apps/web/src/lib/auth.ts` | Token creation, password hashing |
+| `apps/worker/src/index.ts` | BullMQ trigger + step workers |
+| `apps/worker/src/executors.ts` | Node executor implementations (10 executors) |
+| `apps/worker/src/queues.ts` | Queue definitions and job type interfaces |
+| `packages/shared/src/crypto.ts` | AES-256-GCM encrypt/decrypt |
+| `packages/shared/src/constants.ts` | Node type registry with metadata |
+| `packages/shared/src/variables.ts` | Variable interpolation engine |
+| `packages/shared/src/schemas/index.ts` | Zod validation schemas |
+| `packages/shared/prisma/schema.prisma` | Database schema (7 models, 3 enums) |
+
+---
+
+## Variable Interpolation
+
+Steps can reference output from previous nodes using the `{{step.NODE_ID.output.FIELD}}` syntax:
+
+```
+# Example
+Trigger node (node_1) outputs: { email: "user@example.com", text: "Hello World" }
+
+Next node config:
+  message: "New email from {{step.node_1.output.email}}: {{step.node_1.output.text}}"
+
+Resolved:
+  message: "New email from user@example.com: Hello World"
+```
+
+Supports nested field access and array indexing (e.g., `{{step.node_1.output.items[0].name}}`).
+
+---
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues or submit pull requests.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+---
+
+<p align="center">
+  <b>Built with ⚡ by <a href="https://github.com/bcsakalar">bcsakalar</a></b><br/>
+  <i>Self-hosted AI workflow automation for everyone.</i>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Synapse-AI%20Workflow%20Builder-blueviolet?style=for-the-badge&logo=lightning&logoColor=white" alt="Synapse" />
+</p>
+
+<h1 align="center">⚡ Synapse</h1>
+
+<p align="center">
   <b>AI-Powered Workflow Automation Builder</b><br/>
   <i>Describe your automation in plain language — Synapse builds, visualizes, and executes it.</i>
 </p>
