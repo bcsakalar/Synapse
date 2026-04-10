@@ -321,7 +321,7 @@ Detaylı kurulum ve çalıştırma talimatları için [SERVER.md](SERVER.md) dos
 
 ```bash
 # 1. Repo'yu klonla
-git clone https://github.com/YOUR_USERNAME/synapse.git
+git clone https://github.com/bcsakalar/synapse.git
 cd synapse
 
 # 2. Bağımlılıkları yükle
@@ -652,7 +652,7 @@ For detailed setup and deployment instructions, see [SERVER.md](SERVER.md).
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/YOUR_USERNAME/synapse.git
+git clone https://github.com/bcsakalar/synapse.git
 cd synapse
 
 # 2. Install dependencies
@@ -684,6 +684,6 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <p align="center">
-  <b>Built with ⚡ by Synapse</b><br/>
+  <b>Built with ⚡ by Berke Can Sakalar</b><br/>
   <i>Self-hosted AI workflow automation for everyone.</i>
 </p>
